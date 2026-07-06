@@ -75,6 +75,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "appointment_date",
             "time_slot",
             "reason",
+            "cancellation_reason",
             "status",
             "created_at",
         ]

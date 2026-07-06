@@ -101,6 +101,7 @@ class AppointmentAdmin(admin.ModelAdmin):
         "appointment_date",
         "time_slot",
         "reason",
+        "cancellation_reason",
         "status",
         "created_at",
     )

@@ -81,7 +81,7 @@ class Appointment(models.Model):
     time_slot = models.TimeField()
 
     reason = models.TextField(blank=True)
-
+    cancellation_reason = models.TextField(blank=True)
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,

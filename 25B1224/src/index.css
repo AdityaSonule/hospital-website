@@ -768,3 +768,23 @@ a {
   cursor: not-allowed;
   transform: none;
 }
+
+.empty-message {
+  margin-top: 24px;
+  padding: 20px;
+  background: white;
+  border-radius: 16px;
+  color: #475569;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.danger-button {
+  background: #dc2626;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 700;
+  margin-top: 12px;
+}
