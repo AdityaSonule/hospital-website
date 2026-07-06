@@ -18,6 +18,7 @@ function BookAppointment() {
   const [timeSlot, setTimeSlot] = useState("");
   const [availableSlots, setAvailableSlots] = useState([]);
   const [slotMessage, setSlotMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     async function loadInitialData() {
@@ -154,85 +155,86 @@ function BookAppointment() {
     setSlotMessage("");
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+async function handleSubmit(event) {
+  event.preventDefault();
 
-    const token = localStorage.getItem("accessToken");
-
-    if (!token) {
-      alert("Please login before booking a service.");
-
-      const currentPage = location.pathname + location.search;
-      navigate(`/login?next=${encodeURIComponent(currentPage)}`);
-
-      return;
-    }
-
-    const formData = new FormData(event.currentTarget);
-
-    const patientName = formData.get("patient_name");
-    const age = formData.get("age");
-    const phone = formData.get("phone");
-    const reason = formData.get("reason");
-
-    if (!patientName || !age || !phone || !appointmentDate) {
-      alert("Please fill all required details.");
-      return;
-    }
-
-    if (!timeSlot) {
-      alert("Please select an available time slot.");
-      return;
-    }
-
-    if (appointmentType === "doctor" && (!department || !doctor)) {
-      alert("Please select department and doctor.");
-      return;
-    }
-
-    try {
-      const payload = {
-        appointment_type: appointmentType,
-        patient_name: patientName,
-        age: Number(age),
-        phone: phone,
-        appointment_date: appointmentDate,
-        time_slot: timeSlot,
-        reason: reason || "",
-      };
-
-      if (appointmentType === "doctor") {
-        payload.department = Number(department);
-        payload.doctor = Number(doctor);
-      } else {
-        payload.department = null;
-        payload.doctor = null;
-      }
-
-      await axiosInstance.post("/appointments/", payload);
-
-      alert("Booking submitted successfully. You can view it in My Appointments.");
-
-      event.currentTarget.reset();
-
-      setAppointmentType("doctor");
-      setDepartment("");
-      setDoctor("");
-      setAppointmentDate("");
-      setTimeSlot("");
-      setAvailableSlots([]);
-      setSlotMessage("");
-    } catch (error) {
-      console.error("Booking error:", error.response?.data || error);
-
-      const backendError =
-        error.response?.data?.non_field_errors?.[0] ||
-        error.response?.data?.detail ||
-        "Booking failed. Please check the selected details and login status.";
-
-      alert(backendError);
-    }
+  if (isSubmitting) {
+    return;
   }
+
+  const token = localStorage.getItem("accessToken");
+
+  if (!token) {
+    alert("Please login before booking a service.");
+
+    const currentPage = location.pathname + location.search;
+    navigate(`/login?next=${encodeURIComponent(currentPage)}`);
+
+    return;
+  }
+
+  const formData = new FormData(event.currentTarget);
+
+  const patientName = formData.get("patient_name");
+  const age = formData.get("age");
+  const phone = formData.get("phone");
+  const reason = formData.get("reason");
+
+  if (!patientName || !age || !phone || !appointmentDate) {
+    alert("Please fill all required details.");
+    return;
+  }
+
+  if (!timeSlot) {
+    alert("Please select an available time slot.");
+    return;
+  }
+
+  if (appointmentType === "doctor" && (!department || !doctor)) {
+    alert("Please select department and doctor.");
+    return;
+  }
+
+  try {
+    setIsSubmitting(true);
+
+    const payload = {
+      appointment_type: appointmentType,
+      patient_name: patientName,
+      age: Number(age),
+      phone: phone,
+      appointment_date: appointmentDate,
+      time_slot: timeSlot,
+      reason: reason || "",
+    };
+
+    if (appointmentType === "doctor") {
+      payload.department = Number(department);
+      payload.doctor = Number(doctor);
+    } else {
+      payload.department = null;
+      payload.doctor = null;
+    }
+
+    await axiosInstance.post("/appointments/", payload);
+
+    alert("Booking submitted successfully. You can view it in My Appointments.");
+
+    navigate("/my-appointments");
+  } catch (error) {
+    console.error("Booking error:", error.response?.data || error);
+
+    const backendError =
+      error.response?.data?.non_field_errors?.[0] ||
+      error.response?.data?.error ||
+      error.response?.data?.detail ||
+      "Booking failed. This slot may already be booked or the selected details may be invalid.";
+
+    alert(backendError);
+  } finally {
+    setIsSubmitting(false);
+  }
+}
 
   return (
     <section className="form-page">
@@ -358,7 +360,9 @@ function BookAppointment() {
           }
         />
 
-        <button className="primary-button">Submit Booking</button>
+        <button className="primary-button" disabled={isSubmitting}>
+          {isSubmitting ? "Submitting..." : "Submit Booking"}
+        </button>
       </form>
     </section>
   );

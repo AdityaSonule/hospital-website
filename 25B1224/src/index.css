@@ -762,3 +762,9 @@ a {
   margin: 8px 0 12px;
   border: 1px solid #a7f3d0;
 }
+
+.primary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
