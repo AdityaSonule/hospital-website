@@ -742,3 +742,23 @@ a {
   margin: 8px 0 12px;
   border: 1px solid #a7f3d0;
 }
+
+.slot-message {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  margin: 8px 0 12px;
+}
+
+.doctor-availability-note {
+  background: #ecfdf5;
+  color: #047857;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  margin: 8px 0 12px;
+  border: 1px solid #a7f3d0;
+}

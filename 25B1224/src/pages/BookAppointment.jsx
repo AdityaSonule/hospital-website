@@ -9,175 +9,149 @@ function BookAppointment() {
 
   const initialType = searchParams.get("type") || "doctor";
 
+  const [appointmentType, setAppointmentType] = useState(initialType);
   const [departments, setDepartments] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [department, setDepartment] = useState("");
+  const [doctor, setDoctor] = useState("");
+  const [appointmentDate, setAppointmentDate] = useState("");
+  const [timeSlot, setTimeSlot] = useState("");
   const [availableSlots, setAvailableSlots] = useState([]);
   const [slotMessage, setSlotMessage] = useState("");
 
-  const [form, setForm] = useState({
-    appointment_type: initialType,
-    patient_name: "",
-    age: "",
-    phone: "",
-    department: "",
-    doctor: "",
-    appointment_date: "",
-    time_slot: "",
-    reason: "",
-  });
-
   useEffect(() => {
-    axiosInstance
-      .get("/departments/")
-      .then((response) => {
-        const data = Array.isArray(response.data)
-          ? response.data
-          : response.data.results || [];
+    async function loadInitialData() {
+      try {
+        const departmentsResponse = await axiosInstance.get("/departments/");
+        const doctorsResponse = await axiosInstance.get("/doctors/");
 
-        setDepartments(data);
-      })
-      .catch((error) => {
-        console.error("Departments error:", error);
-      });
+        const departmentsData = Array.isArray(departmentsResponse.data)
+          ? departmentsResponse.data
+          : departmentsResponse.data.results || [];
 
-    axiosInstance
-      .get("/doctors/")
-      .then((response) => {
-        const data = Array.isArray(response.data)
-          ? response.data
-          : response.data.results || [];
+        const doctorsData = Array.isArray(doctorsResponse.data)
+          ? doctorsResponse.data
+          : doctorsResponse.data.results || [];
 
-        setDoctors(data);
-      })
-      .catch((error) => {
-        console.error("Doctors error:", error);
-      });
+        setDepartments(departmentsData);
+        setDoctors(doctorsData);
+      } catch (error) {
+        console.error("Initial data load error:", error);
+      }
+    }
+
+    loadInitialData();
   }, []);
 
-  const filteredDoctors = doctors.filter((doctor) => {
-    if (!form.department) return false;
-    return String(doctor.department) === String(form.department);
+  const filteredDoctors = doctors.filter((doctorItem) => {
+    if (!department) return false;
+    return String(doctorItem.department) === String(department);
   });
 
   const selectedDoctor = doctors.find(
-    (doctor) => String(doctor.id) === String(form.doctor)
+    (doctorItem) => String(doctorItem.id) === String(doctor)
   );
 
   useEffect(() => {
-    setSlotMessage("");
-
-    if (!form.appointment_date) {
+    async function loadSlots() {
       setAvailableSlots([]);
-      return;
-    }
+      setSlotMessage("");
+      setTimeSlot("");
 
-    if (form.appointment_type !== "doctor") {
-      setAvailableSlots([
-        { value: "09:00", label: "09:00 AM" },
-        { value: "09:15", label: "09:15 AM" },
-        { value: "09:30", label: "09:30 AM" },
-        { value: "09:45", label: "09:45 AM" },
-        { value: "10:00", label: "10:00 AM" },
-        { value: "10:15", label: "10:15 AM" },
-        { value: "10:30", label: "10:30 AM" },
-        { value: "10:45", label: "10:45 AM" },
-        { value: "11:00", label: "11:00 AM" },
-        { value: "11:15", label: "11:15 AM" },
-        { value: "11:30", label: "11:30 AM" },
-        { value: "11:45", label: "11:45 AM" },
-      ]);
-      return;
-    }
+      if (!appointmentDate) {
+        return;
+      }
 
-    if (!form.doctor) {
-      setAvailableSlots([]);
-      return;
-    }
+      if (appointmentType !== "doctor") {
+        setAvailableSlots([
+          { value: "09:00", label: "09:00 AM" },
+          { value: "09:15", label: "09:15 AM" },
+          { value: "09:30", label: "09:30 AM" },
+          { value: "09:45", label: "09:45 AM" },
+          { value: "10:00", label: "10:00 AM" },
+          { value: "10:15", label: "10:15 AM" },
+          { value: "10:30", label: "10:30 AM" },
+          { value: "10:45", label: "10:45 AM" },
+          { value: "11:00", label: "11:00 AM" },
+          { value: "11:15", label: "11:15 AM" },
+          { value: "11:30", label: "11:30 AM" },
+          { value: "11:45", label: "11:45 AM" },
+        ]);
+        return;
+      }
 
-    axiosInstance
-      .get(
-        `/available-slots/?doctor=${form.doctor}&date=${form.appointment_date}`
-      )
-      .then((response) => {
+      if (!doctor) {
+        return;
+      }
+
+      try {
+        console.log("Fetching slots for:", {
+          doctor,
+          appointmentDate,
+          url: `/available-slots/?doctor=${doctor}&date=${appointmentDate}`,
+        });
+        const response = await axiosInstance.get(
+          `/available-slots/?doctor=${doctor}&date=${appointmentDate}`
+        );
+
         const slots = Array.isArray(response.data) ? response.data : [];
         setAvailableSlots(slots);
 
         if (slots.length === 0) {
           setSlotMessage("No slots available for the selected date.");
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Slots error:", error.response?.data || error);
-        setAvailableSlots([]);
 
         const message =
           error.response?.data?.error ||
           "No slots available for the selected date.";
 
         setSlotMessage(message);
-      });
-  }, [form.doctor, form.appointment_date, form.appointment_type]);
-
-  function handleChange(event) {
-    const { name, value } = event.target;
-
-    if (name === "appointment_type") {
-      setForm((previousForm) => ({
-        ...previousForm,
-        appointment_type: value,
-        department: "",
-        doctor: "",
-        appointment_date: "",
-        time_slot: "",
-        reason: "",
-      }));
-
-      setAvailableSlots([]);
-      setSlotMessage("");
-      return;
+      }
     }
 
-    if (name === "department") {
-      setForm((previousForm) => ({
-        ...previousForm,
-        department: value,
-        doctor: "",
-        time_slot: "",
-      }));
+    loadSlots();
+  }, [appointmentType, doctor, appointmentDate]);
 
-      setAvailableSlots([]);
-      setSlotMessage("");
-      return;
-    }
+  function handleAppointmentTypeChange(event) {
+    const value = event.target.value;
 
-    if (name === "doctor") {
-      setForm((previousForm) => ({
-        ...previousForm,
-        doctor: value,
-        time_slot: "",
-      }));
+    setAppointmentType(value);
+    setDepartment("");
+    setDoctor("");
+    setAppointmentDate("");
+    setTimeSlot("");
+    setAvailableSlots([]);
+    setSlotMessage("");
+  }
 
-      setAvailableSlots([]);
-      setSlotMessage("");
-      return;
-    }
+  function handleDepartmentChange(event) {
+    const value = event.target.value;
 
-    if (name === "appointment_date") {
-      setForm((previousForm) => ({
-        ...previousForm,
-        appointment_date: value,
-        time_slot: "",
-      }));
+    setDepartment(value);
+    setDoctor("");
+    setTimeSlot("");
+    setAvailableSlots([]);
+    setSlotMessage("");
+  }
 
-      setAvailableSlots([]);
-      setSlotMessage("");
-      return;
-    }
+  function handleDoctorChange(event) {
+    const value = event.target.value;
 
-    setForm((previousForm) => ({
-      ...previousForm,
-      value,
-    }));
+    setDoctor(value);
+    setTimeSlot("");
+    setAvailableSlots([]);
+    setSlotMessage("");
+  }
+
+  function handleDateChange(event) {
+    const value = event.target.value;
+
+    setAppointmentDate(value);
+    setTimeSlot("");
+    setAvailableSlots([]);
+    setSlotMessage("");
   }
 
   async function handleSubmit(event) {
@@ -194,25 +168,42 @@ function BookAppointment() {
       return;
     }
 
-    if (!form.time_slot) {
+    const formData = new FormData(event.currentTarget);
+
+    const patientName = formData.get("patient_name");
+    const age = formData.get("age");
+    const phone = formData.get("phone");
+    const reason = formData.get("reason");
+
+    if (!patientName || !age || !phone || !appointmentDate) {
+      alert("Please fill all required details.");
+      return;
+    }
+
+    if (!timeSlot) {
       alert("Please select an available time slot.");
+      return;
+    }
+
+    if (appointmentType === "doctor" && (!department || !doctor)) {
+      alert("Please select department and doctor.");
       return;
     }
 
     try {
       const payload = {
-        appointment_type: form.appointment_type,
-        patient_name: form.patient_name,
-        age: Number(form.age),
-        phone: form.phone,
-        appointment_date: form.appointment_date,
-        time_slot: form.time_slot,
-        reason: form.reason,
+        appointment_type: appointmentType,
+        patient_name: patientName,
+        age: Number(age),
+        phone: phone,
+        appointment_date: appointmentDate,
+        time_slot: timeSlot,
+        reason: reason || "",
       };
 
-      if (form.appointment_type === "doctor") {
-        payload.department = Number(form.department);
-        payload.doctor = Number(form.doctor);
+      if (appointmentType === "doctor") {
+        payload.department = Number(department);
+        payload.doctor = Number(doctor);
       } else {
         payload.department = null;
         payload.doctor = null;
@@ -222,18 +213,13 @@ function BookAppointment() {
 
       alert("Booking submitted successfully. You can view it in My Appointments.");
 
-      setForm({
-        appointment_type: "doctor",
-        patient_name: "",
-        age: "",
-        phone: "",
-        department: "",
-        doctor: "",
-        appointment_date: "",
-        time_slot: "",
-        reason: "",
-      });
+      event.currentTarget.reset();
 
+      setAppointmentType("doctor");
+      setDepartment("");
+      setDoctor("");
+      setAppointmentDate("");
+      setTimeSlot("");
       setAvailableSlots([]);
       setSlotMessage("");
     } catch (error) {
@@ -260,8 +246,8 @@ function BookAppointment() {
 
         <select
           name="appointment_type"
-          value={form.appointment_type}
-          onChange={handleChange}
+          value={appointmentType}
+          onChange={handleAppointmentTypeChange}
           required
         >
           <option value="doctor">Doctor Appointment</option>
@@ -273,8 +259,6 @@ function BookAppointment() {
         <input
           name="patient_name"
           placeholder="Full name"
-          value={form.patient_name}
-          onChange={handleChange}
           required
         />
 
@@ -282,50 +266,46 @@ function BookAppointment() {
           name="age"
           type="number"
           placeholder="Age"
-          value={form.age}
-          onChange={handleChange}
           required
         />
 
         <input
           name="phone"
           placeholder="Phone number"
-          value={form.phone}
-          onChange={handleChange}
           required
         />
 
-        {form.appointment_type === "doctor" && (
+        {appointmentType === "doctor" && (
           <>
             <select
               name="department"
-              value={form.department}
-              onChange={handleChange}
+              value={department}
+              onChange={handleDepartmentChange}
               required
             >
               <option value="">Select department</option>
 
-              {departments.map((department) => (
-                <option value={department.id} key={department.id}>
-                  {department.name}
+              {departments.map((departmentItem) => (
+                <option value={departmentItem.id} key={departmentItem.id}>
+                  {departmentItem.name}
                 </option>
               ))}
             </select>
 
             <select
               name="doctor"
-              value={form.doctor}
-              onChange={handleChange}
+              value={doctor}
+              onChange={handleDoctorChange}
               required
-              disabled={!form.department}
+              disabled={!department}
             >
               <option value="">
-                {form.department ? "Select doctor" : "Select department first"}
+                {department ? "Select doctor" : "Select department first"}
               </option>
 
-              {filteredDoctors.map((doctor) => (
-                <option value={doctor.id} key={doctor.id}>
-                  {doctor.name} - {doctor.specialization}
+              {filteredDoctors.map((doctorItem) => (
+                <option value={doctorItem.id} key={doctorItem.id}>
+                  {doctorItem.name} - {doctorItem.specialization}
                 </option>
               ))}
             </select>
@@ -342,8 +322,8 @@ function BookAppointment() {
         <input
           name="appointment_date"
           type="date"
-          value={form.appointment_date}
-          onChange={handleChange}
+          value={appointmentDate}
+          onChange={handleDateChange}
           required
         />
 
@@ -351,10 +331,10 @@ function BookAppointment() {
 
         <select
           name="time_slot"
-          value={form.time_slot}
-          onChange={handleChange}
+          value={timeSlot}
+          onChange={(event) => setTimeSlot(event.target.value)}
           required
-          disabled={!form.appointment_date || availableSlots.length === 0}
+          disabled={!appointmentDate || availableSlots.length === 0}
         >
           <option value="">
             {availableSlots.length === 0
@@ -372,12 +352,10 @@ function BookAppointment() {
         <textarea
           name="reason"
           placeholder={
-            form.appointment_type === "doctor"
+            appointmentType === "doctor"
               ? "Reason for visit"
               : "Additional details"
           }
-          value={form.reason}
-          onChange={handleChange}
         />
 
         <button className="primary-button">Submit Booking</button>
