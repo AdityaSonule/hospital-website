@@ -10,7 +10,19 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem("accessToken");
 
-  if (token) {
+  const publicRoutes = [
+    "/doctors/",
+    "/departments/",
+    "/auth/login/",
+    "/auth/register/",
+    "/auth/refresh/",
+  ];
+
+  const isPublicRoute = publicRoutes.some((route) =>
+    config.url?.startsWith(route)
+  );
+
+  if (token && !isPublicRoute) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
